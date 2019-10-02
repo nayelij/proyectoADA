@@ -13,17 +13,20 @@ public class Grafo {
 
 	public static HashMap<Integer, Nodo> hashMapNodo = null;
 	public static HashMap<Integer, Arista> hashMapArista = null;
-	public static HashMap<Integer, Arista> hashArbol = null;
-	public static int aristasAux, count, countAux, numnodos;
+	public static HashMap<Integer, Arista> hashArbol, hashArbolDFS, hashArbolDFSR  = null;
+	public static int aristasAux=0, count, countAux, numnodos;
 
 	public Grafo() {
 		hashMapNodo = new HashMap<Integer, Nodo>();
 		hashMapArista = new HashMap<Integer, Arista>();
 		hashArbol = new HashMap<Integer, Arista>();
+		hashArbolDFS = new HashMap<Integer, Arista>();
+		hashArbolDFSR = new HashMap<Integer, Arista>();
 	}
 
 	public static Grafo genErdosRenyi(int numAristas, int numNodos, boolean dirigido, boolean autociclos) {
 		Grafo grafo = new Grafo();
+		numnodos = numNodos;
 		Random r1 = new Random();
 		Random r2 = new Random();
 		while (aristasAux < numNodos) {
@@ -38,7 +41,7 @@ public class Grafo {
 			n.setN2(nodo2);
 			if (autociclos) {
 				if (!hashMapArista.isEmpty()) {
-					if (revisarConexion(c1, c2) == 0) {
+					if (revisarConexion(c1, c2, hashMapArista) == 0) {
 						hashMapArista.put(count, n);
 						count += 1;
 						aristasAux += 1;
@@ -52,7 +55,7 @@ public class Grafo {
 			} else {
 				if (c1 != c2) {
 					if (!hashMapArista.isEmpty()) {
-						if (revisarConexion(c1, c2) == 0) {
+						if (revisarConexion(c1, c2, hashMapArista) == 0) {
 							hashMapArista.put(count, n);
 							count += 1;
 							aristasAux += 1;
@@ -68,7 +71,7 @@ public class Grafo {
 		if (dirigido) {
 			exportarArchivo("ErdosRenyi-dirigido", hashMapArista, true);
 		} else {
-			exportarArchivo("ErdosRenyi-500", hashMapArista, false);
+			exportarArchivo("ErdosRenyi-100", hashMapArista, false);
 		}
 		return grafo;
 	}
@@ -88,7 +91,7 @@ public class Grafo {
 				n.setN2(nodo2);
 				if (autociclos) {
 					if (r.nextDouble() <= probabilidad) {
-						if (revisarConexion(i, j) == 0) {
+						if (revisarConexion(i, j, hashMapArista) == 0) {
 							hashMapArista.put(count, n);
 							count += 1;
 						}
@@ -96,7 +99,7 @@ public class Grafo {
 				} else {
 					if (i != j) {
 						if (r.nextDouble() <= probabilidad) {
-							if (revisarConexion(i, j) == 0) {
+							if (revisarConexion(i, j, hashMapArista) == 0) {
 								hashMapArista.put(count, n);
 								count += 1;
 							}
@@ -118,6 +121,7 @@ public class Grafo {
 	public static Grafo genGeograficoSimple(int numNodos, double distancia, boolean dirigido, boolean autociclos) {
 		Random x = new Random();
 		Random y = new Random();
+		numnodos = numNodos;
 		Grafo grafo = new Grafo();
 		for (int i = 0; i < numNodos; i++) {
 			Nodo nodo = new Nodo();
@@ -139,7 +143,7 @@ public class Grafo {
 					nodo2.setIdNodo(j);
 					n.setN1(nodo1);
 					n.setN2(nodo2);
-					if (revisarConexion(i, j) == 0) {
+					if (revisarConexion(i, j, hashMapArista) == 0) {
 						hashMapArista.put(count, n);
 						count += 1;
 					}
@@ -157,11 +161,12 @@ public class Grafo {
 	public static Grafo genBarabasiAlbert(int numNodos, int grado, boolean dirigido, boolean autociclos) {
 		Random p = new Random();
 		Grafo grafo = new Grafo();
+		numnodos = numNodos;
 		for (int i = 0; i < numNodos; i++) {
 			for (int j = i - 1; j >= 0; j--) {
 				double probabilidad = 1 - (obtenerGrado(j) / (double) grado);
 				if (p.nextDouble() < probabilidad) {
-					if (revisarConexion(i, j) == 0) {
+					if (revisarConexion(i, j, hashMapArista) == 0) {
 						if (obtenerGrado(i) <= (double) grado) {
 							Arista n = new Arista();
 							Nodo nodo1 = new Nodo();
@@ -185,7 +190,7 @@ public class Grafo {
 		return grafo;
 	}
 
-	public static void conectarVertice(int i, int j) {
+	public static void conectarVertice(int i, int j, HashMap<Integer, Arista> a) {
 
 		Arista n = new Arista();
 		Nodo nodo1 = new Nodo();
@@ -194,8 +199,9 @@ public class Grafo {
 		nodo2.setIdNodo(j);
 		n.setN1(nodo1);
 		n.setN2(nodo2);
-		hashArbol.put(countAux, n);
+		a.put(countAux, n);
 		countAux += 1;
+
 	}
 
 	public static int obtenerGrado(Integer n1) {
@@ -235,9 +241,9 @@ public class Grafo {
 		return dis;
 	}
 
-	public static int revisarConexion(int n, int m) {
+	public static int revisarConexion(int n, int m, HashMap<Integer, Arista> a) {
 		int c = 0;
-		for (Entry<Integer, Arista> i : hashMapArista.entrySet()) {
+		for (Entry<Integer, Arista> i : a.entrySet()) {
 			// Integer key = i.getKey();
 			Arista value = i.getValue();
 			if ((value.getN1().getIdNodo() == n && value.getN2().getIdNodo() == m)
@@ -251,12 +257,12 @@ public class Grafo {
 		return c;
 	}
 
-	public void BFS(int s, Grafo g) {
+	public void BFS(int s) {
 		// Grafo grafo = new Grafo();
 		PriorityQueue<Integer> ListaCapas = new PriorityQueue<Integer>();
 		Boolean[] discovered = new Boolean[Grafo.numnodos];
 		discovered[s] = true;
-		for (Entry<Integer, Arista> i : g.hashMapArista.entrySet()) {
+		for (Entry<Integer, Arista> i : Grafo.hashMapArista.entrySet()) {
 			Arista value = i.getValue();
 			if ((value.getN1().getIdNodo() != s) || (value.getN2().getIdNodo() != 0)) {
 				discovered[value.getN1().getIdNodo()] = false;
@@ -270,14 +276,17 @@ public class Grafo {
 			HashSet<Integer> nodo = getIncidencia(u);
 			for (Integer n : nodo) {
 				if (!discovered[n]) {
-					conectarVertice(u, n);
-					discovered[n] = true;
-					ListaCapas.add(n);
+					if (revisarConexion(u, n, hashArbol) == 0) {
+						conectarVertice(u, n,hashArbol);
+						discovered[n] = true;
+						ListaCapas.add(n);
+					}
+
 				}
 			}
 			// System.out.println(hashArbol);
 		}
-		exportarArchivo("BFS", hashArbol, false);
+		exportarArchivo("BFS-ErdosReyni-100", hashArbol, false);
 		// return grafo;
 
 	}
@@ -289,8 +298,8 @@ public class Grafo {
 			discovered[i] = false;
 		}
 
- 		DFSrec(s, discovered);
-		exportarArchivo("DFS_r", hashArbol, false);
+		DFSrec(s, discovered);
+		exportarArchivo("DFS-r-ErdosReyni-100", hashArbolDFSR, false);
 	}
 
 	public void DFSrec(int u, Boolean[] discovered) {
@@ -299,7 +308,7 @@ public class Grafo {
 		HashSet<Integer> nodo = getIncidencia(u);
 		for (Integer n : nodo) {
 			if (!discovered[n]) {
-				conectarVertice(u, n);
+				conectarVertice(u, n,hashArbolDFSR);
 				DFSrec(n, discovered);
 			}
 		}
@@ -307,31 +316,32 @@ public class Grafo {
 
 	public void DFS_i(int s) {
 
-		Boolean[] explored = new Boolean[Grafo.numnodos];
+		Boolean[] discovered = new Boolean[Grafo.numnodos];
 		Stack<Integer> S = new Stack<Integer>();
-		Integer[] parent = new Integer[Grafo.numnodos];
+		Integer[] p = new Integer[Grafo.numnodos];
 		for (int i = 0; i < Grafo.numnodos; i++) {
-			explored[i] = false;
+			discovered[i] = false;
 		}
 		S.push(s);
 		while (!S.isEmpty()) {
 
 			int u = S.pop();
-			if (!explored[u]) {
-				explored[u] = true;
+			if (!discovered[u]) {
+				discovered[u] = true;
 				if (u != s) {
-					conectarVertice(u, parent[u]);
+					conectarVertice(u, p[u], hashArbolDFS);
 				}
 				HashSet<Integer> nodo = getIncidencia(u);
 				for (Integer n : nodo) {
 					S.push(n);
-					parent[n] = u;
+					p[n] = u;
 				}
 
 			}
 		}
 
-		exportarArchivo("DFS_i", hashArbol, false);
+		exportarArchivo("DFS-i-ErdosReyni-100", hashArbolDFS, false);
+		// exportarArchivo("DFS_r", hashArbol, false);
 	}
 
 	public HashSet<Integer> getIncidencia(int n) {
